@@ -26,11 +26,11 @@ public class MultipleDashEnemy : Enemy
     {
         rigidbody.velocity = rigidbody.velocity * velocityDrag;
         WarningCooldownTimerHandler();
-        StartTimer("timer");
+        //StartTimer("timer");
         if (timer > timeBeforAttack)
         {
             Attack();
-            StopTimer("timer");
+           // StopTimer("timer");
         }
         
     }
