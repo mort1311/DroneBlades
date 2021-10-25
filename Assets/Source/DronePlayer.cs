@@ -58,6 +58,7 @@ public class DronePlayer : MonoBehaviour
     bool shouldHealthbarRefill = false;
     [SerializeField] float refillChargeTimer = 2;
     [SerializeField] float energyDecrementStep = 0.001f;
+    [SerializeField] float energyDashDecrement = 0.1f;
 
     [SerializeField] Button specialButton;
 
@@ -79,7 +80,7 @@ public class DronePlayer : MonoBehaviour
         Joystick2Handler();
         HandleMovingState();
         rigidbody.velocity = rigidbody.velocity * velocityDrag;
-        HealthbarRefill();
+        EnergyRefill();
     }
 
     void HandleMovingState()
@@ -142,15 +143,6 @@ public class DronePlayer : MonoBehaviour
         }
     }
 
-    void StartActivationTimer()
-    {
-        if (rightChargeTimer.IsCharged)
-        {
-//            activationTimer = activationTimer + Time.deltaTime;
-            spriteRenderer.color = Color.red;
-        }
-    }
-
     void Joystick2Handler()
     {
         if (joystickMode == 1)
@@ -166,11 +158,16 @@ public class DronePlayer : MonoBehaviour
         }
     }
 
-    void HealthbarDecrement(){
+    void EnergyStepDecrement(){
         ModifyEnergy(-energyDecrementStep);
     }
 
-    void HealthbarRefill(){
+    void EnergyDashDecrement()
+    {
+        ModifyEnergy(-energyDashDecrement);
+    }
+
+    void EnergyRefill(){
         if(shouldHealthbarRefill){
             StartCoroutine(waitforseconds());
         }   
@@ -201,7 +198,7 @@ public class DronePlayer : MonoBehaviour
             joystick2.isPointerUp = false;
             joystickDirection2 = joystick2.Direction;
             rigidbody.AddForce(joystickDirection2.normalized * curveForce,ForceMode2D.Force);
-            HealthbarDecrement();
+            EnergyStepDecrement();
             
         }
         if( joystick2.isPointerUp){
@@ -269,15 +266,10 @@ public class DronePlayer : MonoBehaviour
 
     void DashAttack(Vector2 joystickDirection)
     {
-        IEnumerator isDashingDuration()
-        {
-            isDashing = true;
-            yield return new WaitForSeconds(dashingTime);
-            isDashing = false;
-        }
+        EnergyDashDecrement();
         rigidbody.velocity = Vector2.zero;
         rigidbody.AddForce(joystickDirection * tempDashForce, ForceMode2D.Impulse);
-        StartCoroutine(isDashingDuration());
+        
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
