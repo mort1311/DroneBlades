@@ -168,24 +168,31 @@ public class DronePlayer : MonoBehaviour
     }
 
     void EnergyRefill(){
-        if(shouldHealthbarRefill){
-            StartCoroutine(waitforseconds());
-        }   
-        IEnumerator waitforseconds(){
-            shouldHealthbarRefill=false;
-            yield return new WaitForSeconds(refillChargeTimer);
-            startHealthbarRefill=true;
-        } 
+        StopEnergyRefill();
         if(startHealthbarRefill && energy < 0.9f){
-            ModifyEnergy(Time.deltaTime);
+            ModifyEnergy(energyDecrementStep);
         }
         if(energy > 0.9f){
             startHealthbarRefill=false;
         }
     }
 
+    void StopEnergyRefill()
+    {
+        if (shouldHealthbarRefill)
+        {
+            StartCoroutine(waitforseconds());
+        }
+        IEnumerator waitforseconds()
+        {
+            shouldHealthbarRefill = false;
+            yield return new WaitForSeconds(refillChargeTimer);
+            startHealthbarRefill = true;
+        }
+    }
+
     void ModifyEnergy(float value) {
-        energy += value;
+        energy += value*Time.deltaTime;
         energy = Mathf.Clamp01(energy);
         OnPlayerHealthChangedEv.Invoke(energy);
     }

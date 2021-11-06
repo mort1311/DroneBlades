@@ -738,8 +738,8 @@ MonoBehaviour:
   curveForce: 7
   energy: 1
   refillChargeTimer: 0.1
-  energyDecrementStep: 0.0007
-  energyDashDecrement: 0.1
+  energyDecrementStep: 0.3
+  energyDashDecrement: 50
   specialButton: {fileID: 1720202704}
   OnPlayerHealthChangedEv:
     m_PersistentCalls:
