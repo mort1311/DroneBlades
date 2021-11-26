@@ -235,7 +235,7 @@ public class DronePlayer : MonoBehaviour
     {
         energy -= energyDashDecrement;
         energy = Mathf.Clamp01(energy);
-        OnPlayerHealthChangedEv.Invoke(energy);
+        OnPlayerHealthChangedEv.Invoke(energy); 
     }
 
     void EnergyRefill(){
@@ -269,7 +269,7 @@ public class DronePlayer : MonoBehaviour
             yield return new WaitForSeconds(refillChargeTimer);
             startHealthbarRefill = true;
         }
-    }
+    } 
 
     void ModifyEnergy(float value) {
         energy += value*Time.deltaTime;
