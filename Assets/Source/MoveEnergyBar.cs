@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class HealthBar : MonoBehaviour
+public class MoveEnergyBar : MonoBehaviour
 {
     Image image;
 
@@ -11,7 +11,7 @@ public class HealthBar : MonoBehaviour
         image = GetComponent<Image>();
     }
 
-    public void HandleOnPlayerHealthChanged(float newValue) {
+    public void HandleOnPlayerMoveEnergyChanged(float newValue) {
         image.fillAmount=newValue;
     }
 }

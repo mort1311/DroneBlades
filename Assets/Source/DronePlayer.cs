@@ -25,7 +25,7 @@ public class DronePlayer : MonoBehaviour
 
     [SerializeField] private ChargeTimer rightChargeTimer;
 
-    [SerializeField] private ChargeTimer leftChargeTimer; 
+    [SerializeField] private ChargeTimer leftChargeTimer;
 
     [SerializeField] FloatingJoystick joystick;
     [SerializeField] Vector2 joystickDirection;
@@ -58,6 +58,10 @@ public class DronePlayer : MonoBehaviour
     bool shouldHealthbarRefill = false;
     [SerializeField] float refillChargeTimer = 2;
     [SerializeField] float energyDecrementStep = 0.001f;
+    [SerializeField] float energyDashDecrement = 0.1f;
+    [SerializeField] float energyActivatedDecrement = 1f;
+    [SerializeField] float energyDefaultRefill = 2f;
+    [SerializeField] float energyCurveDecrement = 0.03f;
 
     [SerializeField] Button specialButton;
 
@@ -79,12 +83,40 @@ public class DronePlayer : MonoBehaviour
         Joystick2Handler();
         HandleMovingState();
         rigidbody.velocity = rigidbody.velocity * velocityDrag;
-        HealthbarRefill();
+        //EnergyRefill();
+
+        
+
+        if (!isActivated && !isMoving)
+        {
+            shouldHealthbarRefill = true;
+        }
+        if (isActivated)
+        {
+            shouldHealthbarRefill = false;
+            EnergyActivatedDecrement();
+        }
+
+        if (shouldHealthbarRefill)
+        {
+
+            EnergyRefill();
+        }
+        else
+        {
+            EnergyStepDecrement();
+        }
+
+        if (energy <= 0)
+        {
+            isActivated = false;
+            DisableActivation();
+        }
     }
 
     void HandleMovingState()
     {
-        if (rigidbody.velocity.magnitude > magnitudeNormalize) 
+        if (rigidbody.velocity.magnitude > magnitudeNormalize)
         {
             isMoving = true;
         }
@@ -92,63 +124,82 @@ public class DronePlayer : MonoBehaviour
         {
             isMoving = false;
         }
-        if (isMoving == false && isHeld==false)
+        if (isMoving == false && isHeld == false)
         {
             leftChargeTimer.Reset();
             rightChargeTimer.Reset();
-            velocityDrag = velocityDragStart;
-            tempDashForce = dashforce;
-            spriteRenderer.color = Color.white;
-            isActivated = false;
+
+            StartCoroutine(DisableActivation_());
+
+            IEnumerator DisableActivation_()
+            {
+                yield return new WaitForSeconds(1);
+                velocityDrag = velocityDragStart;
+                tempDashForce = dashforce;
+                spriteRenderer.color = Color.white;
+                shouldHealthbarRefill = true;
+                isActivated = false;
+            }
         }
     }
 
-    void Joystick1Handler()
+    void DisableActivation()
     {
-        if (joystick.isPointerDown)
-        {
-            isHeld = true;
-            joystickDirection = joystick.Direction;
-            ActivateSkillshot();
-            rightChargeTimer.Charge();
-        }
-       
-        if (joystick.isPointerUp)
-        {
-            if (isActivated)
+        velocityDrag = velocityDragStart;
+        tempDashForce = dashforce;
+        spriteRenderer.color = Color.white;
+        shouldHealthbarRefill = true;
+        isActivated = false;
+    }
+
+    void DisableEnergyRefill()
+    {
+        shouldHealthbarRefill = false;
+    }
+
+    void EnableEnergyRefill()
+    {
+        shouldHealthbarRefill = true;
+    }
+
+    void Joystick1Handler() { 
+        
+            if (joystick.isPointerDown)
             {
-                velocityDrag = velocityDragMinus;
+                isHeld = true;
+                joystickDirection = joystick.Direction;
+                ActivateSkillshot();
+                rightChargeTimer.Charge();
             }
-            isHeld = false;
-            DisableSkillshot();
+
+            if (joystick.isPointerUp)
+            {
+                if (isActivated)
+                {
+                    velocityDrag = velocityDragMinus;
+                }
+                isHeld = false;
+                DisableSkillshot();
+                if (rightChargeTimer.IsCharged)
+                {
+                    tempDashForce = chargedDashForce;
+                }
+                else
+                {
+                    rightChargeTimer.Reset();
+                    tempDashForce = dashforce;
+                }
+                DashAttack(joystickDirection);
+                joystick.isPointerUp = false;
+                joystick.isPointerDown = false;
+            }
             if (rightChargeTimer.IsCharged)
             {
-                tempDashForce = chargedDashForce;
-            }
-            else
-            {
-                rightChargeTimer.Reset();
-                tempDashForce = dashforce;
-            }
-            DashAttack(joystickDirection);
-            joystick.isPointerUp = false;
-            joystick.isPointerDown = false;
-        }
-        if (rightChargeTimer.IsCharged)
-        {
-            isActivated = true;
-            spriteRenderer.color = Color.red;
-            
-        }
-    }
+                isActivated = true;
+                spriteRenderer.color = Color.red;
 
-    void StartActivationTimer()
-    {
-        if (rightChargeTimer.IsCharged)
-        {
-//            activationTimer = activationTimer + Time.deltaTime;
-            spriteRenderer.color = Color.red;
-        }
+            }
+        
     }
 
     void Joystick2Handler()
@@ -166,33 +217,65 @@ public class DronePlayer : MonoBehaviour
         }
     }
 
-    void HealthbarDecrement(){
+
+    void EnableDefaultRefill()
+    {
+        IEnumerator EnableDefaultRefill()
+        {
+            yield return new WaitForSeconds(0.5f);
+            shouldHealthbarRefill = true;
+        }
+        StartCoroutine(EnableDefaultRefill());
+    }
+    void EnergyStepDecrement(){
         ModifyEnergy(-energyDecrementStep);
     }
 
-    void HealthbarRefill(){
-        if(shouldHealthbarRefill){
-            StartCoroutine(waitforseconds());
-        }   
-        IEnumerator waitforseconds(){
-            shouldHealthbarRefill=false;
-            yield return new WaitForSeconds(refillChargeTimer);
-            startHealthbarRefill=true;
-        } 
+    void EnergyDashDecrement()
+    {
+        energy -= energyDashDecrement;
+        energy = Mathf.Clamp01(energy);
+        OnPlayerHealthChangedEv.Invoke(energy); 
+    }
+
+    void EnergyRefill(){
+        StopEnergyRefill();
         if(startHealthbarRefill && energy < 0.9f){
-            ModifyEnergy(Time.deltaTime);
+            ModifyEnergy(energyDecrementStep);
         }
         if(energy > 0.9f){
             startHealthbarRefill=false;
         }
     }
 
+    void EnergyActivatedDecrement()
+    {
+        ModifyEnergy(-energyActivatedDecrement);
+    }
+
+    void EnergyCurveDecrement()
+    {
+        ModifyEnergy(-energyCurveDecrement);
+    }
+    void StopEnergyRefill()
+    {
+        if (shouldHealthbarRefill)
+        {
+            StartCoroutine(waitforseconds());
+        }
+        IEnumerator waitforseconds()
+        {
+            shouldHealthbarRefill = false;
+            yield return new WaitForSeconds(refillChargeTimer);
+            startHealthbarRefill = true;
+        }
+    } 
+
     void ModifyEnergy(float value) {
-        energy += value;
+        energy += value*Time.deltaTime;
         energy = Mathf.Clamp01(energy);
         OnPlayerHealthChangedEv.Invoke(energy);
     }
-    
 
     void Joystick2CurveMode(){
         if (joystick2.isPointerDown && !Mathf.Approximately(energy, 0.0f)) {
@@ -201,8 +284,8 @@ public class DronePlayer : MonoBehaviour
             joystick2.isPointerUp = false;
             joystickDirection2 = joystick2.Direction;
             rigidbody.AddForce(joystickDirection2.normalized * curveForce,ForceMode2D.Force);
-            HealthbarDecrement();
-            
+            //EnergyStepDecrement();
+            EnergyCurveDecrement();
         }
         if( joystick2.isPointerUp){
             shouldHealthbarRefill = true;
@@ -269,15 +352,13 @@ public class DronePlayer : MonoBehaviour
 
     void DashAttack(Vector2 joystickDirection)
     {
-        IEnumerator isDashingDuration()
+        if (energy > energyDashDecrement)
         {
-            isDashing = true;
-            yield return new WaitForSeconds(dashingTime);
-            isDashing = false;
+            shouldHealthbarRefill = false;
+            EnergyDashDecrement();
+            rigidbody.velocity = Vector2.zero;
+            rigidbody.AddForce(joystickDirection * tempDashForce, ForceMode2D.Impulse);
         }
-        rigidbody.velocity = Vector2.zero;
-        rigidbody.AddForce(joystickDirection * tempDashForce, ForceMode2D.Impulse);
-        StartCoroutine(isDashingDuration());
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -325,3 +406,4 @@ public class DronePlayer : MonoBehaviour
         skillshot2.SetActive(false);
     }
 }
+
